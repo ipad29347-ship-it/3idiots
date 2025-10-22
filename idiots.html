@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gamer's Hub Arcade</title>
+    <!-- 1. Load Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 2. Load Google Font 'Inter' for a sleek UI -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- 3. Custom styles for animations and game elements -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Fade-in animation for the whole page */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        /* Tic-Tac-Toe board button styling */
+        .ttt-cell {
+            width: 100px;
+            height: 100px;
+            font-size: 3rem;
+            line-height: 1;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        
+        /* Ensure canvas is crisp on all displays */
+        canvas {
+            background-color: #000;
+            border-radius: 8px;
+            border: 2px solid #334155; /* slate-700 */
+            transition: border-color 0.3s; /* Add transition for flash effect */
+        }
+
+        /* Reaction test target */
+        #reaction-target {
+            position: absolute;
+            background-color: #ef4444; /* red-500 */
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+        #reaction-target:hover {
+            transform: scale(1.1);
+        }
+
+        /* Game Over Flash for Snake */
+        @keyframes gameOverFlash {
+            0%, 100% {
+                border-color: #ef4444; /* red-500 */
+                box-shadow: 0 0 20px #ef4444;
+            }
+            50% {
+                border-color: #334155; /* slate-700 */
+                box-shadow: none;
+            }
+        }
+
+        .game-over-flash {
+            animation: gameOverFlash 0.5s 2; /* Flash twice */
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-gray-200 min-h-screen p-4 sm:p-8">
+
+    <div class="container mx-auto max-w-4xl fade-in">
+        
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <h1 class="text-4xl sm:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">
+                Gamer's Hub
+            </h1>
+            <p class="text-lg text-slate-400 mt-2">Your one-stop arcade for mini-games.</p>
+        </header>
+
+        <!-- Main Content Area -->
+        <main>
+            <!-- Game Menu (Visible by default) -->
+            <div id="game-menu" class="fade-in">
+                <h2 class="text-2xl font-semibold mb-6 text-center">Choose Your Game</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    
+                    <!-- Tic-Tac-Toe Card -->
+                    <div class="bg-slate-800 p-6 rounded-lg shadow-lg transition-all duration-300 hover:shadow-indigo-500/30 hover:scale-105">
+                        <h3 class="text-xl font-bold mb-2 text-blue-400">Tic-Tac-Toe</h3>
+                        <p class="text-slate-400 mb-4">The classic 3-in-a-row game. Play against a friend (or yourself!).</p>
+                        <button onclick="showGame('tic-tac-toe')" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 hover:bg-blue-700">
+                            Play Now
+                        </button>
+                    </div>
+                    
+                    <!-- Snake Card -->
+                    <div class="bg-slate-800 p-6 rounded-lg shadow-lg transition-all duration-300 hover:shadow-indigo-500/30 hover:scale-105">
+                        <h3 class="text-xl font-bold mb-2 text-green-400">Snake</h3>
+                        <p class="text-slate-400 mb-4">Eat the food, grow your snake, and don't hit the walls (or yourself!).</p>
+                        <button onclick="showGame('snake')" class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 hover:bg-green-700">
+                            Play Now
+                        </button>
+                    </div>
+
+                    <!-- Reaction Test Card -->
+                    <div class="bg-slate-800 p-6 rounded-lg shadow-lg transition-all duration-300 hover:shadow-indigo-500/30 hover:scale-105">
+                        <h3 class="text-xl font-bold mb-2 text-red-400">Reaction Test</h3>
+                        <p class="text-slate-400 mb-4">How fast are you? Click the target as soon as it appears.</p>
+                        <button onclick="showGame('reaction')" class="w-full bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 hover:bg-red-700">
+                            Play Now
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Game Container (Hidden by default) -->
+            <div id="game-container" class="hidden">
+                <button onclick="showMenu()" class="mb-6 bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 hover:bg-slate-600">
+                    &larr; Back to Menu
+                </button>
+
+                <!-- Specific Game Views -->
+                <div id="game-tic-tac-toe" class="hidden game-view">
+                    <h2 class="text-3xl font-bold text-center mb-4 text-blue-400">Tic-Tac-Toe</h2>
+                    <div id="ttt-status" class="text-center text-xl mb-4 h-8"></div>
+                    <div class_A="flex justify-center">
+                        <div id="ttt-board" class="grid grid-cols-3 gap-2 bg-slate-700 p-2 rounded-lg">
+                            <!-- Cells will be generated by JS -->
+                        </div>
+                    </div>
+                    <div class="text-center mt-6">
+                        <button id="ttt-restart" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 hover:bg-blue-700">
+                            Restart Game
+                        </button>
+                    </div>
+                </div>
+
+                <div id="game-snake" class="hidden game-view">
+                    <h2 class="text-3xl font-bold text-center mb-4 text-green-400">Snake</h2>
+                    <div class="flex justify-between items-center mb-4 px-4">
+                        <div class="text-2xl font-bold">Score: <span id="snake-score">0</span></div>
+                        <div id="snake-status" class="text-xl text-red-500 font-semibold h-8"></div>
+                    </div>
+                    <div class="flex justify-center">
+                        <canvas id="snake-canvas" width="400" height="400"></canvas>
+                    </div>
+                    <p class="text-center text-slate-400 mt-4">Use your <span class="font-bold text-white">Arrow Keys</span> to move.</p>
+                </div>
+
+                <div id="game-reaction" class="hidden game-view">
+                    <h2 class="text-3xl font-bold text-center mb-4 text-red-400">Reaction Test</h2>
+                    <div class="text-center mb-4">
+                        <div id="reaction-score" class="text-3xl font-bold h-10"></div>
+                        <p id="reaction-instructions" class="text-lg text-slate-300">Click the button to start. When the red target appears, click it!</p>
+                    </div>
+                    <div class="flex justify-center mb-6">
+                        <button id="reaction-start" class="bg-red-600 text-white font-semibold py-3 px-6 rounded-lg text-lg transition-all duration-200 hover:bg-red-700">
+                            Start Test
+                        </button>
+                    </div>
+                    <div id="reaction-area" class="relative w-full h-64 bg-slate-800 rounded-lg border-2 border-slate-700">
+                        <div id="reaction-target" class="hidden"></div>
+                    </div>
+                </div>
+                
+            </div>
+        </main>
+    </div>
+
+    <!-- 4. All JavaScript Logic -->
+    <script>
+        // --- Global State & Navigation ---
+        const gameMenu = document.getElementById('game-menu');
+        const gameContainer = document.getElementById('game-container');
+        const gameViews = document.querySelectorAll('.game-view');
+        
+        let activeGame = 'menu';
+        let snakeGameLoop;
+        let reactionTimeout;
+
+        function showGame(gameId) {
+            activeGame = gameId;
+            // Hide menu, show game container
+            gameMenu.classList.add('hidden');
+            gameContainer.classList.remove('hidden');
+            gameContainer.classList.add('fade-in'); // Add fade-in for game screen
+
+            // Hide all game views
+            gameViews.forEach(view => view.classList.add('hidden'));
+
+            // Show the selected game view
+            const selectedGame = document.getElementById(`game-${gameId}`);
+            if (selectedGame) {
+                selectedGame.classList.remove('hidden');
+            }
+
+            // Initialize the specific game
+            if (gameId === 'tic-tac-toe') {
+                initTicTacToe();
+            } else if (gameId === 'snake') {
+                initSnake();
+            } else if (gameId === 'reaction') {
+                initReactionTest();
+            }
+        }
+
+        function showMenu() {
+            activeGame = 'menu';
+            // Hide game container, show menu
+            gameContainer.classList.add('hidden');
+            gameMenu.classList.remove('hidden');
+            gameMenu.classList.add('fade-in'); // Re-add fade-in for menu
+
+            // Stop any running games
+            if (snakeGameLoop) {
+                clearInterval(snakeGameLoop);
+            }
+            if (reactionTimeout) {
+                clearTimeout(reactionTimeout);
+            }
+        }
+
+        // --- Game 1: Tic-Tac-Toe ---
+        const tttBoardElement = document.getElementById('ttt-board');
+        const tttStatusElement = document.getElementById('ttt-status');
+        const tttRestartButton = document.getElementById('ttt-restart');
+        
+        let tttBoard = ['', '', '', '', '', '', '', '', ''];
+        let tttCurrentPlayer = 'X';
+        let tttGameActive = true;
+
+        const tttWinningConditions = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
+            [0, 4, 8], [2, 4, 6]  // Diagonals
+        ];
+
+        function initTicTacToe() {
+            tttBoard = ['', '', '', '', '', '', '', '', ''];
+            tttCurrentPlayer = 'X';
+            tttGameActive = true;
+            tttStatusElement.textContent = "Player X's turn";
+            tttBoardElement.innerHTML = ''; // Clear previous board
+            
+            // Create 9 cells
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('button');
+                cell.classList.add('ttt-cell', 'bg-slate-800', 'hover:bg-slate-700', 'text-white');
+                cell.dataset.index = i;
+                cell.addEventListener('click', handleTTTClick);
+                tttBoardElement.appendChild(cell);
+            }
+        }
+
+        function handleTTTClick(event) {
+            const clickedCellIndex = event.target.dataset.index;
+
+            if (tttBoard[clickedCellIndex] !== '' || !tttGameActive) {
+                return; // Cell already taken or game over
+            }
+
+            // Update board state and UI
+            tttBoard[clickedCellIndex] = tttCurrentPlayer;
+            event.target.textContent = tttCurrentPlayer;
+            event.target.classList.add(tttCurrentPlayer === 'X' ? 'text-blue-400' : 'text-red-400');
+
+            if (checkTTTWinner()) {
+                tttStatusElement.textContent = `Player ${tttCurrentPlayer} wins!`;
+                tttGameActive = false;
+            } else if (!tttBoard.includes('')) {
+                tttStatusElement.textContent = "It's a draw!";
+                tttGameActive = false;
+            } else {
+                // Switch player
+                tttCurrentPlayer = tttCurrentPlayer === 'X' ? 'O' : 'X';
+                tttStatusElement.textContent = `Player ${tttCurrentPlayer}'s turn`;
+            }
+        }
+
+        function checkTTTWinner() {
+            for (let i = 0; i < tttWinningConditions.length; i++) {
+                const [a, b, c] = tttWinningConditions[i];
+                if (tttBoard[a] && tttBoard[a] === tttBoard[b] && tttBoard[a] === tttBoard[c]) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        tttRestartButton.addEventListener('click', initTicTacToe);
+
+        // --- Game 2: Snake ---
+        const snakeCanvas = document.getElementById('snake-canvas');
+        const snakeCtx = snakeCanvas.getContext('2d');
+        const snakeScoreElement = document.getElementById('snake-score');
+        const snakeStatusElement = document.getElementById('snake-status');
+
+        const gridSize = 20; // 20px per grid square
+        let canvasSize = 400; // 400x400 canvas
+        let snake, foods, score, direction, dx, dy;
+        let particles = [];
+        const maxFood = 5;
+
+        function initSnake() {
+            snake = [
+                { x: 8, y: 10 }, // Start in the middle
+                { x: 7, y: 10 },
+                { x: 6, y: 10 }
+            ];
+            foods = []; // Food is now an array
+            particles = []; // Particle array for effects
+            score = 0;
+            direction = 'right';
+            dx = 1; // 1 grid unit
+            dy = 0;
+            snakeScoreElement.textContent = '0';
+            snakeStatusElement.textContent = '';
+            snakeCanvas.classList.remove('game-over-flash'); // Remove flash effect on restart
+            
+            // Spawn initial food
+            while(foods.length < maxFood) {
+                placeFood();
+            }
+            
+            if (snakeGameLoop) clearInterval(snakeGameLoop);
+            snakeGameLoop = setInterval(gameLoopSnake, 100); // Game speed
+        }
+
+        function gameLoopSnake() {
+            if (activeGame !== 'snake') {
+                clearInterval(snakeGameLoop);
+                return;
+            }
+            
+            updateParticles(); // Update particle effects
+            moveSnake();
+            
+            if (checkSnakeCollision()) {
+                clearInterval(snakeGameLoop);
+                snakeStatusElement.textContent = 'Game Over!';
+                snakeCanvas.classList.add('game-over-flash'); // Add flash effect
+                return;
+            }
+            
+            const eatenFoodIndex = checkFoodCollision();
+            if (eatenFoodIndex > -1) {
+                score++;
+                snakeScoreElement.textContent = score;
+                
+                // Get eaten food position for particle effect
+                const eatenFood = foods[eatenFoodIndex];
+                spawnParticles(eatenFood.x, eatenFood.y);
+                
+                // Remove eaten food and add a new one
+                foods.splice(eatenFoodIndex, 1);
+                placeFood();
+            } else {
+                snake.pop(); // Remove tail
+            }
+
+            drawSnakeGame();
+        }
+
+        function drawSnakeGame() {
+            // Clear canvas
+            snakeCtx.fillStyle = '#1e293b'; // slate-800
+            snakeCtx.fillRect(0, 0, canvasSize, canvasSize);
+
+            // Draw snake with a subtle gradient
+            snake.forEach((segment, index) => {
+                const head = index === 0;
+                // Brighter green for the head, slightly darker for the body
+                const R = head ? 134 : 74; // 86efac (green-300) : 4ade80 (green-400)
+                const G = head ? 239 : 222;
+                const B = head ? 172 : 128;
+                
+                // Simple gradient
+                const gradient = snakeCtx.createLinearGradient(
+                    segment.x * gridSize, segment.y * gridSize, 
+                    (segment.x + 1) * gridSize, (segment.y + 1) * gridSize
+                );
+                gradient.addColorStop(0, `rgb(${R}, ${G}, ${B})`);
+                gradient.addColorStop(1, `rgb(${R - 20}, ${G - 20}, ${B - 20})`);
+                
+                snakeCtx.fillStyle = gradient;
+                snakeCtx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+                
+                // Add a border for definition
+                snakeCtx.strokeStyle = '#1e293b'; // slate-800
+                snakeCtx.strokeRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+            });
+
+            // Draw all food items with a "pulse" or gradient
+            foods.forEach(food => {
+                const gradient = snakeCtx.createRadialGradient(
+                    (food.x + 0.5) * gridSize, (food.y + 0.5) * gridSize, gridSize * 0.1,
+                    (food.x + 0.5) * gridSize, (food.y + 0.5) * gridSize, gridSize * 0.5
+                );
+                gradient.addColorStop(0, '#fca5a5'); // red-300
+                gradient.addColorStop(1, '#f87171'); // red-400
+                
+                snakeCtx.fillStyle = gradient;
+                snakeCtx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
+            });
+            
+            drawParticles(); // Draw particle effects
+        }
+
+        function moveSnake() {
+            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+            snake.unshift(head); // Add new head
+        }
+
+        // Renamed and updated from didEatFood
+        function checkFoodCollision() {
+            for (let i = 0; i < foods.length; i++) {
+                if (snake[0].x === foods[i].x && snake[0].y === foods[i].y) {
+                    return i; // Return index of eaten food
+                }
+            }
+            return -1; // No collision
+        }
+
+        function placeFood() {
+            if (foods.length >= maxFood) return; // Don't add more food if limit is reached
+
+            let foodX, foodY, onSnake, onFood;
+            do {
+                onSnake = false;
+                onFood = false;
+                foodX = Math.floor(Math.random() * (canvasSize / gridSize));
+                foodY = Math.floor(Math.random() * (canvasSize / gridSize));
+                
+                // Check if food spawns on the snake
+                for (const segment of snake) {
+                    if (segment.x === foodX && segment.y === foodY) {
+                        onSnake = true;
+                        break;
+                    }
+                }
+                
+                // Check if food spawns on other food
+                if (!onSnake) {
+                    for (const food of foods) {
+                        if (food.x === foodX && food.y === foodY) {
+                            onFood = true;
+                            break;
+                        }
+                    }
+                }
+            } while (onSnake || onFood);
+            
+            foods.push({ x: foodX, y: foodY });
+        }
+
+        function checkSnakeCollision() {
+            const head = snake[0];
+            // Wall collision
+            if (head.x < 0 || head.x >= canvasSize / gridSize || head.y < 0 || head.y >= canvasSize / gridSize) {
+                return true;
+            }
+            // Self-collision
+            for (let i = 1; i < snake.length; i++) {
+                if (head.x === snake[i].x && head.y === snake[i].y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // --- Particle Effect Functions ---
+        
+        function spawnParticles(x, y) {
+            const particleCount = 10;
+            const particleColor = '#f87171'; // red-400
+            for (let i = 0; i < particleCount; i++) {
+                particles.push({
+                    x: (x + 0.5) * gridSize, // Start from center of grid cell
+                    y: (y + 0.5) * gridSize,
+                    vx: (Math.random() - 0.5) * 4, // Random velocity
+                    vy: (Math.random() - 0.5) * 4,
+                    life: 20, // Lifespan in frames
+                    color: particleColor,
+                    size: Math.random() * 3 + 1
+                });
+            }
+        }
+        
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life--;
+                
+                if (p.life <= 0) {
+                    particles.splice(i, 1); // Remove dead particle
+                }
+            }
+        }
+        
+        function drawParticles() {
+            particles.forEach(p => {
+                snakeCtx.globalAlpha = p.life / 20; // Fade out
+                snakeCtx.fillStyle = p.color;
+                snakeCtx.beginPath();
+                snakeCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                snakeCtx.fill();
+                snakeCtx.globalAlpha = 1.0; // Reset alpha
+            });
+        }
+        
+        // --- End of Particle Effect Functions ---
+
+        function handleSnakeKeydown(e) {
+            if (activeGame !== 'snake') return;
+
+            const newDirection = e.key;
+            if (newDirection === 'ArrowUp' && direction !== 'down') {
+                direction = 'up'; dx = 0; dy = -1;
+            } else if (newDirection === 'ArrowDown' && direction !== 'up') {
+                direction = 'down'; dx = 0; dy = 1;
+            } else if (newDirection === 'ArrowLeft' && direction !== 'right') {
+                direction = 'left'; dx = -1; dy = 0;
+            } else if (newDirection === 'ArrowRight' && direction !== 'left') {
+                direction = 'right'; dx = 1; dy = 0;
+            }
+            // Prevent snake from moving 180 degrees into itself
+            e.preventDefault(); 
+        }
+
+        // Global key listener for Snake
+        document.addEventListener('keydown', handleSnakeKeydown);
+
+
+        // --- Game 3: Reaction Test ---
+        const reactionStartBtn = document.getElementById('reaction-start');
+        const reactionArea = document.getElementById('reaction-area');
+        const reactionTarget = document.getElementById('reaction-target');
+        const reactionScoreEl = document.getElementById('reaction-score');
+        const reactionInstructions = document.getElementById('reaction-instructions');
+        
+        let reactionGameActive = false;
+        let reactionStartTime;
+
+        function initReactionTest() {
+            reactionStartBtn.classList.remove('hidden');
+            reactionTarget.classList.add('hidden');
+            reactionScoreEl.textContent = '';
+            reactionInstructions.textContent = 'Click the button to start. When the red target appears, click it!';
+            reactionGameActive = false;
+            if (reactionTimeout) clearTimeout(reactionTimeout);
+        }
+
+        function startReactionTest() {
+            reactionStartBtn.classList.add('hidden');
+            reactionScoreEl.textContent = '';
+            reactionInstructions.textContent = 'Get ready...';
+            reactionGameActive = false; // Not active until target appears
+            
+            // Random delay between 1 and 4 seconds
+            const delay = Math.random() * 3000 + 1000;
+            
+            reactionTimeout = setTimeout(showReactionTarget, delay);
+        }
+
+        function showReactionTarget() {
+            reactionInstructions.textContent = 'Click!';
+            reactionGameActive = true;
+            
+            // Get random position within the reaction area
+            const areaRect = reactionArea.getBoundingClientRect();
+            const targetSize = 80;
+            const randomTop = Math.random() * (areaRect.height - targetSize);
+            const randomLeft = Math.random() * (areaRect.width - targetSize);
+
+            reactionTarget.style.top = `${randomTop}px`;
+            reactionTarget.style.left = `${randomLeft}px`;
+            reactionTarget.classList.remove('hidden');
+
+            reactionStartTime = Date.now();
+        }
+
+        function clickReactionTarget() {
+            if (!reactionGameActive) {
+                // Clicked too early
+                if (reactionTimeout) { // If they clicked before target appeared
+                    clearTimeout(reactionTimeout);
+                    reactionInstructions.textContent = 'Too soon! Click Start to try again.';
+                    reactionStartBtn.classList.remove('hidden');
+                }
+                return;
+            }
+
+            const endTime = Date.now();
+            const reactionTime = endTime - reactionStartTime;
+
+            reactionScoreEl.textContent = `${reactionTime} ms`;
+            reactionInstructions.textContent = 'Nice! Click Start to go again.';
+            reactionTarget.classList.add('hidden');
+            reactionStartBtn.classList.remove('hidden');
+            reactionGameActive = false;
+        }
+        
+        reactionStartBtn.addEventListener('click', startReactionTest);
+        reactionTarget.addEventListener('click', clickReactionTarget);
+        reactionArea.addEventListener('click', () => {
+             // This captures clicks on the background (too early)
+            if (!reactionGameActive && reactionStartBtn.classList.contains('hidden')) {
+                clickReactionTarget(); // Will trigger "Too soon" logic
+            }
+        });
+
+    </script>
+</body>
+</html>
+
